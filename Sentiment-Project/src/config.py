@@ -9,6 +9,7 @@ DROPOUT = 0.5
 BATCH_SIZE = 64
 EPOCHS = 10
 LEARNING_RATE = 1e-3
+NUM_CLASSES = 2
 
 # Other configurations
 MAX_LEN = 300  # Độ dài tối đa của review sau khi padding

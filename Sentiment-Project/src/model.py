@@ -2,27 +2,28 @@ import torch
 import torch.nn as nn
 
 class CNN_LSTM_Model(nn.Module):
-    def __init__(self, embedding_matrix, hidden_dim, dropout):
+    def __init__(self, embedding_matrix, hidden_dim, dropout, num_classes):
         super(CNN_LSTM_Model, self).__init__()
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        vocab_size, embedding_dim = embedding_matrix.shape
 
-        self.embedding = nn.Embedding(vocab_size, embedding_dim)
-        self.embedding.weight.data.copy_(torch.tensor(embedding_matrix))
-        self.embedding.weight.requires_grad = False
+        vocab_size, embed_dim = embedding_matrix.shape
 
-        self.conv1d = nn.Conv1d(in_channels=embedding_dim, out_channels=128, kernel_size=5, padding=2)
-        self.lstm = nn.LSTM(input_size=128, hidden_size=hidden_dim, batch_first=True)
+        self.embedding = nn.Embedding.from_pretrained(
+            torch.tensor(embedding_matrix, dtype=torch.float32),
+            freeze=False  # cho phép fine-tune embedding
+        )
+
+        self.conv1 = nn.Conv1d(embed_dim, 128, kernel_size=3, padding=1)
+        self.lstm = nn.LSTM(128, hidden_dim, batch_first=True, bidirectional=True)
         self.dropout = nn.Dropout(dropout)
-        self.fc = nn.Linear(hidden_dim, 1)
-        self.sigmoid = nn.Sigmoid()
+        self.fc = nn.Linear(hidden_dim * 2, num_classes)
 
     def forward(self, x):
-        x = self.embedding(x)  # (B, L, E)
-        x = x.permute(0, 2, 1)  # (B, E, L)
-        x = self.conv1d(x)  # (B, C, L)
-        x = x.permute(0, 2, 1)  # (B, L, C)
-        _, (h_n, _) = self.lstm(x)
-        h_n = self.dropout(h_n[-1])
-        out = self.fc(h_n)
-        return self.sigmoid(out)
+        x = self.embedding(x)                          # (batch, seq_len, embed_dim)
+        x = x.permute(0, 2, 1)                         # (batch, embed_dim, seq_len)
+        x = torch.relu(self.conv1(x))                  # (batch, 128, seq_len)
+        x = x.permute(0, 2, 1)                         # (batch, seq_len, 128)
+        _, (h_n, _) = self.lstm(x)                     # h_n: (2, batch, hidden_dim)
+        h_n = torch.cat((h_n[-2,:,:], h_n[-1,:,:]), dim=1)  # (batch, hidden_dim*2)
+        x = self.dropout(h_n)
+        x = self.fc(x)
+        return x

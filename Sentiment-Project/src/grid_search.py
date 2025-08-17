@@ -29,9 +29,9 @@ def run_grid_search(train_data, train_labels, test_data, test_labels, embedding_
             best_acc = acc
             best_params = (lr, dropout, hidden_dim)
             torch.save(model.state_dict(), "best_model.pt")
-            print(f"✅ New Best Accuracy: {acc*100:.2f}%")
+            print(f"New Best Accuracy: {acc*100:.2f}%")
 
-    print(f"\n🏆 Best Accuracy: {best_acc*100:.2f}% with params: LR={best_params[0]}, Dropout={best_params[1]}, Hidden={best_params[2]}")
+    print(f"\nBest Accuracy: {best_acc*100:.2f}% with params: LR={best_params[0]}, Dropout={best_params[1]}, Hidden={best_params[2]}")
 
 def evaluate_and_return_acc(model, test_data, test_labels):
     model.eval()
