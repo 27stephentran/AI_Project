@@ -2,7 +2,7 @@ import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 def train_model(model, train_data, train_labels, test_data, test_labels,
-                optimizer, criterion, batch_size, num_epochs, device="cpu"):
+                optimizer, criterion, batch_size, num_epochs, device="cpu", save_path="model.pth"):
     # Tạo TensorDataset
     train_dataset = TensorDataset(
     train_data.clone().detach().long() if isinstance(train_data, torch.Tensor) else torch.tensor(train_data, dtype=torch.long),
@@ -35,5 +35,4 @@ def train_model(model, train_data, train_labels, test_data, test_labels,
 
         avg_loss = total_loss / len(train_loader)
         print(f"Epoch [{epoch+1}/{num_epochs}], Loss: {avg_loss:.4f}")
-
     return model

@@ -13,6 +13,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from model import CNN_LSTM_Model
 from train import train_model
 
+# Save path
+save_dir = "Sentiment-Project/result"
+os.makedirs(save_dir, exist_ok=True)  # tạo folder nếu chưa có
+save_path = os.path.join(save_dir, "model.pth")
+
 # Load dữ liệu
 print("Loading dataset...")
 train_df = load_imdb_data("Sentiment-Project/aclImdb/train")
@@ -52,19 +57,22 @@ if MODE == "train":
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
     criterion = torch.nn.CrossEntropyLoss()
 
-    train_model(
+    model = train_model(
         model,
         train_data, train_labels,
         test_data, test_labels,
         optimizer, criterion,
         BATCH_SIZE, EPOCHS
     )
-
+    torch.save(model.state_dict(), save_path)
     evaluate_model(model, test_data, test_labels, DEVICE)
-
+    
 elif MODE == "grid":
     print("Starting Grid Search...")
     run_grid_search(train_data, train_labels, test_data, test_labels, embedding_matrix)
 
 else:
     print("Invalid MODE. Please set MODE to 'train' or 'grid'")
+
+
+    
