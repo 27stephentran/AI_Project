@@ -1,45 +1,51 @@
+import sys, os
+
+# Lấy đường dẫn tuyệt đối tới Sentiment_Project
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../Sentiment_Project"))
+sys.path.append(BASE_DIR)
+
+from src.embedding_loader import load_custom_embedding
+from src.model import CNN_LSTM_Model
+
 import torch
-import torch.nn as nn
 import pickle
-import os
+# from Sentiment_Project.src.embedding_loader import load_custom_embedding
+# from Sentiment_Project.src.model import CNN_LSTM_Model
 
-# CNN+LSTM Model (phải giống kiến trúc khi train)
-class SentimentModel(nn.Module):
-    def __init__(self, embedding_matrix, hidden_dim=128, num_classes=1, dropout=0.5):
-        super(SentimentModel, self).__init__()
-        vocab_size, embedding_dim = embedding_matrix.size()
-        self.embedding = nn.Embedding.from_pretrained(embedding_matrix, freeze=False)
-        self.conv = nn.Conv1d(in_channels=embedding_dim, out_channels=128, kernel_size=5)
-        self.lstm = nn.LSTM(128, hidden_dim, batch_first=True)
-        self.fc = nn.Linear(hidden_dim, num_classes)
-        self.dropout = nn.Dropout(dropout)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        x = self.embedding(x).permute(0, 2, 1)  # (batch, embed_dim, seq_len)
-        x = torch.relu(self.conv(x)).permute(0, 2, 1)  # (batch, seq_len, channels)
-        _, (hidden, _) = self.lstm(x)
-        x = self.dropout(hidden[-1])
-        x = self.fc(x)
-        return self.sigmoid(x)
-
-class SentimentPipeline:
-    def __init__(self, base_path="../Sentiment_Project/result"):
+class SentimentPipeline: 
+    def __init__(self, base_path="../Sentiment_Project"):
         self.base_path = base_path
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model, self.word2idx = self.load_model()
 
     def load_model(self):
-        # Load word2idx
-        with open(os.path.join(self.base_path, "word2idx.pkl"), "rb") as f:
-            word2idx = pickle.load(f)
+        cache_dir = os.path.join(self.base_path, "result")
+        os.makedirs(cache_dir, exist_ok=True)
 
-        # Load embedding matrix
-        embedding_matrix = torch.load(os.path.join(self.base_path, "embedding_matrix.pt"))
+        word2idx_path = os.path.join(cache_dir, "word2idx.pkl")
+        embedding_matrix_path = os.path.join(cache_dir, "embedding_matrix.pt")
+        model_path = os.path.join(cache_dir, "model.pth")
+
+        if os.path.exists(word2idx_path) and os.path.exists(embedding_matrix_path):
+            # Load từ cache
+            with open(word2idx_path, "rb") as f:
+                word2idx = pickle.load(f)
+            embedding_matrix = torch.load(embedding_matrix_path, map_location=self.device)
+        else:
+            # Build từ imdb.vocab + imdbEr.txt
+            vocab_path = os.path.join(self.base_path, "aclImdb", "imdb.vocab")
+            embed_path = os.path.join(self.base_path, "aclImdb", "imdbEr.txt")
+            word2idx, embedding_matrix = load_custom_embedding(vocab_path, embed_path)
+            embedding_matrix = torch.tensor(embedding_matrix, dtype=torch.float32)
+
+            # Save cache
+            with open(word2idx_path, "wb") as f:
+                pickle.dump(word2idx, f)
+            torch.save(embedding_matrix, embedding_matrix_path)
 
         # Load model
-        model = SentimentModel(embedding_matrix)
-        model.load_state_dict(torch.load(os.path.join(self.base_path, "model.pth"), map_location=self.device))
+        model = CNN_LSTM_Model(embedding_matrix)
+        model.load_state_dict(torch.load(model_path, map_location=self.device))
         model.to(self.device)
         model.eval()
 
