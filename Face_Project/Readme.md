@@ -45,7 +45,7 @@ pip install torch torchvision datasets pandas pillow
 
 ### Train model
 ```bash
-python train.py
+python src/train.py
 ```
 
 Sau khi chạy xong, model được lưu ở:
