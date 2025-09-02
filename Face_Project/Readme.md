@@ -20,13 +20,21 @@
 
 ## 3. Cấu trúc dự án
 ```
-Emotion_Project/
-│── src/
-│   ├── dataset.py        # Load dataset, tách train/val/test
-│   ├── model.py          # Định nghĩa CNN
-│── result/               # Lưu model sau khi train
-│── train.py              # Script huấn luyện chính
-│── README.md             # Hướng dẫn dự án
+Face_Project
+│   Readme.md
+│
+├── notebooks
+│   └── Face_Research.ipynb
+│
+├── result
+│   ├── class_indices.json
+│   └── face_model.pth
+│
+└── src
+    ├── dataset_loader.py
+    ├── inference.py
+    ├── model.py
+    └── train.py
 ```
 
 ## 4. Cách chạy
